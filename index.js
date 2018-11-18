@@ -26,7 +26,8 @@ function ImageWrangler( name, options ) {
 			key: this.config.accessKey,
 			secret: this.config.accessSecret,
 			bucket: this.config.bucket,
-			region: this.config.region
+			region: this.config.region,
+			endpoint: this.config.endpoint,
 		});
 	}
 
@@ -52,6 +53,10 @@ ImageWrangler.basicDashboard = {
 			name        : 'region',
 			type        : 'text',
 			description : 'The AWS region'
+		}, {
+			name        : 'endpoint',
+			type        : 'text',
+			description : 'The AWS endpoint address'
 		}, {
 			name        : 'tasks',
 			type        : 'object',
