@@ -11,7 +11,7 @@ util = require('util'),
 formidable = require('formidable'),
 fs = require('fs'),
 path = require('path'),
-knox = require('knox'),
+Minio = require('minio'),
 gm = require('gm')
 ;
 
@@ -22,12 +22,12 @@ gm = require('gm')
 function ImageWrangler( name, options ) {
 	Resource.apply( this, arguments );
 	if (this.config.accessKey && this.config.accessSecret && this.config.bucket) {
-		this.client = knox.createClient({
-			key: this.config.accessKey,
-			secret: this.config.accessSecret,
-			bucket: this.config.bucket,
-			region: this.config.region,
-			endpoint: this.config.endpoint,
+		this.client = new Minio.Client({
+		    endPoint: this.config.endpoint,
+		    port: this.config.point,
+		    useSSL: this.config.useSSL,
+		    accessKey: this.config.accessKey,
+		    secretKey: this.config.accessSecret
 		});
 	}
 
@@ -44,19 +44,23 @@ ImageWrangler.basicDashboard = {
 		{
 			name        : 'accessKey',
 			type        : 'text',
-			description : 'The AWS access key id'
+			description : 'The Minio access key id'
 		}, {
 			name        : 'accessSecret',
 			type        : 'text',
-			description : 'The AWS secret access key'
+			description : 'The Minio secret access key'
 		}, {
-			name        : 'region',
+			name        : 'port',
 			type        : 'text',
-			description : 'The AWS region'
+			description : 'The minio port'
+		}, {
+			name        : 'useSSL',
+			type        : 'checkbox',
+			description : 'Use SSL to connect to minio?'
 		}, {
 			name        : 'endpoint',
 			type        : 'text',
-			description : 'The AWS endpoint address'
+			description : 'The Minio endpoint address'
 		}, {
 			name        : 'tasks',
 			type        : 'object',
@@ -209,14 +213,7 @@ ImageWrangler.prototype.uploadFile = function(filename, filesize, mime, stream, 
 	console.log('filename:'+filename);
 	console.log('fileSize:'+filesize);
 	console.log('mime:'+mime);
-	var headers = {
-		'Content-Length': filesize,
-		'Content-Type': mime
-	};
-	if(this.config.publicRead){
-		headers['x-amz-acl'] = 'public-read';
-	}
-	//, 'x-amz-acl': 'public-read'
+	/*
 	this.client.putStream(stream, filename, headers, function(err, res) {
 		console.log('res: '+res.statusCode);
 		if (err){
@@ -230,7 +227,22 @@ ImageWrangler.prototype.uploadFile = function(filename, filesize, mime, stream, 
 				fn();
 			}
 		}
-	});
+	});*/
+	
+	var metaData = {
+	  'Content-Type': mime,
+	}
+	if(this.config.publicRead){
+		metaData['x-amz-acl'] = 'public-read';
+	}
+	minioClient.fPutObject(this.config.bucket, filename, stream, metaData, function(err, etag) {
+	  return console.log(err, etag) // err should be null
+		if (err){
+			fn(err);
+		}else{
+			fn();
+		}
+	})
 };
 
 ImageWrangler.prototype.readStream = function(stream, fn) {
